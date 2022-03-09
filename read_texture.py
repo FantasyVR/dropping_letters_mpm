@@ -7,10 +7,10 @@ def exact_point(texture):
     w, h, d = texture.shape
     points = []
     for i in range(w):
-        if texture[i].max() == 0:
+        if texture[i].min() != 0:
             continue
         for j in range(h):
-            if texture[i, j].max() == 0:
+            if texture[i, j].max() != 0:
                 continue
             points.append([i, j])
     return points
@@ -31,18 +31,18 @@ def generate_random_points(texture, aabb_box):
     len_y = max_y - min_y
     scale_factor = 1.0 / max(len_x, len_y)
 
-    num_rpoints = 10000
+    num_rpoints = 1000
     rpoints = [None] * num_rpoints
     count = 0
     while (count < num_rpoints):
         rx = np.random.randint(min_x, max_x, size=num_rpoints)
         ry = np.random.randint(min_y, max_y, size=num_rpoints)
         for i in range(num_rpoints):
-            if texture[rx[i], ry[i]].max() != 0 and count < num_rpoints:
+            if texture[rx[i], ry[i]].max() == 0 and count < num_rpoints:
                 normal_point = np.array([ry[i] - min_y, min_x - rx[i]
                                          ]) * scale_factor
                 rpoints[count] = normal_point + np.array([0.0, 1.0])
-                print(f"{rpoints[count]}, {rx[i]},{ry[i]}")
+                # print(f"{rpoints[count]}, {rx[i]},{ry[i]}")
                 count += 1
     return np.asarray(rpoints)
 
@@ -59,7 +59,7 @@ def generate_random_samples_from_pixel_texture(file_name):
 
 
 if __name__ == "__main__":
-    texture = imageio.imread('T.png')
+    texture = imageio.imread('letters.png')
     print(f"image shape: {texture.shape}")
     w, h, d = texture.shape
     valid_points = np.asanyarray(exact_point(texture))

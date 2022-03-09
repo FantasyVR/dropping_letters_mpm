@@ -2,10 +2,10 @@ import numpy as np
 from read_texture import generate_random_samples_from_pixel_texture
 import taichi as ti
 
-letter_T = generate_random_samples_from_pixel_texture('T.png')
+letter_T = generate_random_samples_from_pixel_texture('letters.png')
 ti.init(arch=ti.gpu)  # Try to run on GPU
 quality = 1  # Use a larger value for higher-res simulations
-n_particles, n_grid = letter_T.shape[0], 128 * quality
+n_particles, n_grid = letter_T.shape[0], 100 * quality
 dx, inv_dx = 1 / n_grid, float(n_grid)
 dt = 1e-4 / quality
 p_vol, p_rho = (dx * 0.5)**2, 1
@@ -22,8 +22,8 @@ F = ti.Matrix.field(2, 2, dtype=float,
 material = ti.field(dtype=int, shape=n_particles)  # material id
 Jp = ti.field(dtype=float, shape=n_particles)  # plastic deformation
 grid_v = ti.Vector.field(2, dtype=float,
-                         shape=(n_grid, n_grid))  # grid node momentum/velocity
-grid_m = ti.field(dtype=float, shape=(n_grid, n_grid))  # grid node mass
+                         shape=(n_grid//2, n_grid))  # grid node momentum/velocity
+grid_m = ti.field(dtype=float, shape=(n_grid//2, n_grid))  # grid node mass
 
 
 @ti.kernel
@@ -105,7 +105,7 @@ def substep():
 @ti.kernel
 def initialize(particle: ti.ext_arr()):
     for i in range(n_particles):
-        x[i] = ti.Vector([particle[i, 0], particle[i, 1]]) * 0.5 + ti.Vector(
+        x[i] = ti.Vector([particle[i, 0] * 0.6, particle[i, 1] * 0.3]) + ti.Vector(
             [0.2, 0.2])
         material[i] = 1  # 0: fluid 1: jelly 2: snow
         v[i] = ti.Matrix([0, 0])
@@ -115,17 +115,18 @@ def initialize(particle: ti.ext_arr()):
 
 def main():
     initialize(letter_T)
-    gui = ti.GUI("Taichi MLS-MPM-99", res=512, background_color=0x112F41)
+    gui = ti.GUI("Taichi MLS-MPM-99", res=(256, 512), background_color=0x112F41)
+    frame = 0
     while not gui.get_event(ti.GUI.ESCAPE, ti.GUI.EXIT):
         for s in range(int(2e-3 // dt)):
             substep()
         gui.circles(x.to_numpy(),
-                    radius=1.5,
+                    radius=2.5,
                     palette=[0x068587, 0xED553B, 0xEEEEF0],
                     palette_indices=material)
-        gui.show(
-        )  # Change to gui.show(f'{frame:06d}.png') to write images to disk
-
+        gui.show()  # Change to gui.show(f'{frame:06d}.png') to write images to disk
+        # gui.show(f'data/{frame:06d}.png')
+        frame+=1
 
 if __name__ == '__main__':
     main()
